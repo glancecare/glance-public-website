@@ -1,4 +1,5 @@
-import adapter from '@sveltejs/adapter-node';
+import adapterNode from '@sveltejs/adapter-node';
+import adapterVercel from '@sveltejs/adapter-vercel';
 import { mdsvex } from 'mdsvex';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { visit } from 'unist-util-visit';
@@ -54,7 +55,8 @@ const config = {
 		// adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.
 		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
 		// See https://kit.svelte.dev/docs/adapters for more information about adapters.
-		adapter: adapter()
+		// Vercel sets VERCEL=1 during builds; Docker/Cloud Build keep using adapter-node.
+		adapter: process.env.VERCEL ? adapterVercel() : adapterNode()
 	},
 	preprocess: [
 		mdsvex({
