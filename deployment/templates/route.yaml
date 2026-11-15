@@ -1,0 +1,105 @@
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: public-website-http-filter-redirect
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: public-website-external-http
+    sectionName: http
+  hostnames:
+  - "*.glance.care"
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: public-website-https-route
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: public-website-external-http
+    sectionName: https
+  hostnames:
+  - "*.glance.care"
+  rules:
+  - backendRefs:
+    - name: glance-public-site
+      port: 3000
+---
+
+#prod
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: public-website-prod-http-filter-redirect
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: public-website-external-http-prod
+    sectionName: httpprod
+  hostnames:
+  - "glance.care"
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: public-website-prod-www-http-filter-redirect
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: public-website-external-http-prod
+    sectionName: httpprodwww
+  hostnames:
+  - "www.glance.care"
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: public-website-prod-www-https-route
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: public-website-external-http-prod
+    sectionName: httpsprodwww
+  hostnames:
+  - "www.glance.care"
+  rules:
+  - backendRefs:
+    - name: glance-public-site
+      port: 3000
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: public-website-prod-https-filter-redirect
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: public-website-external-http-prod
+    sectionName: httpsprod
+  hostnames:
+  - "glance.care"
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        hostname: "www.glance.care"
+  

@@ -1,0 +1,22 @@
+image: atlassian/default-image:4
+
+definitions:
+  services:
+    docker:
+      memory: 2048
+
+pipelines:
+  branches:
+    "master":
+      - step:
+          name: Public site build and upload to OCI registry
+          services:
+            - docker
+          script:
+            - docker login -u $OCI_IMAGE_REGISTRY_USERNAME -p $OCI_IMAGE_REGISTRY_TOKEN $OCI_IMAGE_REGISTRY_URL
+            - docker build -t $OCI_IMAGE_REGISTRY_URL/$OCI_DOMAIN/glc-public-site:v$(date +%F)-${BITBUCKET_BUILD_NUMBER} .
+            - docker push $OCI_IMAGE_REGISTRY_URL/$OCI_DOMAIN/glc-public-site:v$(date +%F)-${BITBUCKET_BUILD_NUMBER}
+            - >-
+              curl -X POST --data-urlencode "payload={\"username\": \"Build Update\",\"text\": \"PUBLIC-SITE: v$(date +%F)-${BITBUCKET_BUILD_NUMBER} ready for Production deployment\", \"icon_emoji\": \":white_check_mark:\"}" 'https://hooks.slack.com/services/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'
+          caches:
+            - docker

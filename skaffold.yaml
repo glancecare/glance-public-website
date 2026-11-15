@@ -1,0 +1,25 @@
+apiVersion: skaffold/v4beta6
+kind: Config
+metadata:
+  name: public-website
+build:
+  artifacts:
+    - image: glance-public-site
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        cacheFrom:
+          - node:22.4.1-alpine
+deploy:
+  helm:
+    releases:
+      - name: glance-public-site
+        chartPath: deployment
+        valuesFiles:
+          - deployment/values.yaml
+        namespace: marketing
+        version: 0.1.0
+        setValueTemplates:
+          image.repository: "{{.IMAGE_REPO_glance_public_site}}"
+          image.tag: "{{.IMAGE_TAG_glance_public_site}}@{{.IMAGE_DIGEST_glance_public_site}}"
+          env.gtmId: "{{.PUBLIC_GTM_ID}}"

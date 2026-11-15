@@ -1,0 +1,75 @@
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: public-website-external-http
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    hostname: beta.glance.care
+    allowedRoutes:
+      namespaces:
+        from: "All"
+  - name: https
+    protocol: HTTPS
+    port: 443
+    hostname: beta.glance.care
+    allowedRoutes:
+      namespaces:
+        from: "All"
+    tls:
+      mode: Terminate
+      options:
+        networking.gke.io/pre-shared-certs: beta-glance-care-ssl
+  addresses:
+  - type: NamedAddress
+    value: glance-marketing-ip
+---
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: public-website-external-http-prod
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+  - name: httpprod
+    protocol: HTTP
+    port: 80
+    hostname: glance.care
+    allowedRoutes:
+      namespaces:
+        from: "All"
+  - name: httpprodwww
+    protocol: HTTP
+    port: 80
+    hostname: www.glance.care
+    allowedRoutes:
+      namespaces:
+        from: "All"
+  - name: httpsprod
+    protocol: HTTPS
+    port: 443
+    hostname: glance.care
+    allowedRoutes:
+      namespaces:
+        from: "All"
+    tls:
+      mode: Terminate
+      options:
+        networking.gke.io/pre-shared-certs: glance-care-ssl
+  - name: httpsprodwww
+    protocol: HTTPS
+    port: 443
+    hostname: www.glance.care
+    allowedRoutes:
+      namespaces:
+        from: "All"
+    tls:
+      mode: Terminate
+      options:
+        networking.gke.io/pre-shared-certs: glance-care-ssl
+  addresses:
+  - type: NamedAddress
+    value: glance-marketing-prod-ip

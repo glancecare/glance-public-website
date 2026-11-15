@@ -1,0 +1,18 @@
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: glance-public-site-hc
+  namespace: marketing
+spec:
+  default:
+    logConfig:
+      enabled: true
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 3000
+        requestPath: /
+  targetRef:
+    group: ""
+    kind: Service
+    name: glance-public-site

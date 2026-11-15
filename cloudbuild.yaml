@@ -1,0 +1,108 @@
+steps:
+  - id: "Git config"
+    name: gcr.io/cloud-builders/git
+    args:
+      - '-c'
+      - |
+        echo "$$SSHKEY" > /root/.ssh/id_rsa
+        chmod 400 /root/.ssh/id_rsa
+        ssh-keyscan bitbucket.org > /root/.ssh/known_hosts
+    entrypoint: bash
+    secretEnv:
+      - SSHKEY
+    volumes:
+      - name: ssh
+        path: /root/.ssh
+  - id: "Git clone"
+    name: gcr.io/cloud-builders/git
+    args:
+      - clone
+      - '-n'
+      - 'git@bitbucket.org:groacare/public-website.git'
+      - .
+    volumes:
+      - name: ssh
+        path: /root/.ssh
+  - id: "Git checkout"
+    name: gcr.io/cloud-builders/git
+    args:
+      - checkout
+      - $_TO_SHA
+  - id: "Get kube config"
+    name: gcr.io/cloud-builders/kubectl
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${LOCATION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      - KUBECONFIG=/workspace/.kube/config
+    args:
+      - cluster-info
+  - id: "Diagnose Skaffold"
+    name: gcr.io/k8s-skaffold/skaffold
+    args:
+      - 'skaffold'
+      - 'diagnose'
+      - '--yaml-only'
+      - '--filename=skaffold.yaml'
+  - id: "Inspect Skaffold"
+    name: gcr.io/k8s-skaffold/skaffold
+    args:
+      - 'skaffold'
+      - 'inspect'
+      - 'jobManifestPaths'
+      - 'list'
+      - '--filename=skaffold.yaml'
+  - id: "Build Skaffold"
+    name: gcr.io/k8s-skaffold/skaffold
+    args:
+      - 'skaffold'
+      - 'build'
+      - '--default-repo=gcr.io/${PROJECT_ID}'
+      - '--kubeconfig=/workspace/.kube/config'
+      - '--filename=skaffold.yaml'
+      - '--kube-context=${_CLUSTER}'
+      - '--file-output=/workspace/artifacts.json'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${LOCATION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      - 'APP_HOST=${_APP_HOST}'
+      - 'PUBLIC_GTM_ID=${_GTM_ID}'
+  - id: "Render Skaffold"
+    name: gcr.io/k8s-skaffold/skaffold
+    args:
+      - 'skaffold'
+      - 'render'
+      - '--build-artifacts=/workspace/artifacts.json'
+      - '--output=/workspace/manifest.yaml'
+      - '--filename=skaffold.yaml'
+      - '--label=release=${_RELEASE_NAME},commitId=${REVISION_ID}'
+      - '--verbosity=trace'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${LOCATION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      - 'APP_HOST=${_APP_HOST}'
+      - 'PUBLIC_GTM_ID=${_GTM_ID}'
+  - id: "Skaffold Apply"
+    name: gcr.io/k8s-skaffold/skaffold
+    args:
+      - 'skaffold'
+      - 'apply'
+      - '/workspace/manifest.yaml'
+      - '--label=release=${_RELEASE_NAME},commitId=${REVISION_ID}'
+      - '--kubeconfig=/workspace/.kube/config'
+      - '--kube-context=${_CLUSTER}'
+      - '--verbosity=trace'
+      - '--status-check'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${LOCATION}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLUSTER_NAME}'
+      - 'APP_HOST=${_APP_HOST}'
+      - 'PUBLIC_GTM_ID=${_GTM_ID}'
+substitutions:
+  _RELEASE_NAME: "rel-${REVISION_ID:0:7}"
+options:
+  automapSubstitutions: true
+  dynamicSubstitutions: true
+availableSecrets:
+  secretManager:
+    - versionName: projects/${PROJECT_ID}/secrets/webhook-secret/versions/1
+      env: SSHKEY
